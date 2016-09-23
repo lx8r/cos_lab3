@@ -6,13 +6,7 @@
 #define Pi 3.141592653589
 
 using namespace std;
-/*
-struct complex {
-    double re;
-    double im;
-};
 
-*/
 
 class Complex{
 private:
