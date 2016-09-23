@@ -1,78 +1,87 @@
 #include <iostream>
 #include <fstream>
-#include <stdio.h>
-#include <stdbool.h>
 #include <cmath>
 
-#define NUMBER_IS_2_POW_K(x) ((!((x)&((x)-1)))&&((x)>1)) // =1 if x is pow(2, k), k=1,2, ...
-#define Pi 3.1415926535897932384626433832795 //число Пи
+
+#define Pi 3.141592653589
 
 using namespace std;
-
+/*
 struct complex {
     double re;
     double im;
 };
 
-void print_complex(complex *a);
-void fft(complex *mass, int N);
-void sort(int *mass, int N);
-void wtof(complex *arr, int N);
-complex t_coeff(int k, int N);
+*/
+
+class Complex{
+private:
+    double re;
+    double im;
+public:
+    Complex(){re=im=0;};
+    Complex(double inRe){re = inRe;im = 0;};
+    Complex(double inRe, double inIm) {re = inRe;im = inIm;};
+    
+    void print();
+    double real(){return re;};
+    double imag(){return im;};
+
+
+    friend Complex operator+(Complex c1, Complex c2);
+    friend Complex operator-(Complex c1, Complex c2);
+    friend Complex operator*(Complex c1, Complex c2);
+    friend Complex operator/(Complex c1, Complex c2);
+
+};
+
+void fft(Complex *mass, int N);
+void writeToFile(Complex *arr, int N);
 
 int main(int argc, char** argv) {
-
     int N = 256;
     cin >> N;
 
-    if(!NUMBER_IS_2_POW_K(N)) {
-        cout << "ERROR: N=" << N << " isn&#39;t pow(2, k), k=1,2, ...\n";
-        return false;
-    }
-
-    complex *arr;
-    arr = new complex [N]; // Входной массив
+    Complex *arr = new Complex[N];
 
     for(int i = 0; i < N; i++){
-        (arr+i)->re = sin(2*Pi*2*i/8/N);
-        (arr+i)->im = 0;
-        print_complex(arr+i);
+        double func = sin(2*Pi*25*i/N)+7*sin(2*Pi*50*i/N)+5*sin(2*Pi*75*i/N);
+        arr[i] = Complex(func);
+        arr[i].print();
+
     }
 
-    cout << "\n";
     fft(arr, N);
 
     for(int i = 0; i < N; i++){
-        print_complex(arr+i);
+        arr[i].print();
+        cout << endl;
     }
 
-    wtof(arr, N);
+
+    writeToFile(arr, N);
     delete [] arr;
     return 0;
 }
 
-void fft(complex *mass, int N){
-    int P = N;
-    complex *mass1; // дополнительный массив для помощи в двоично-инверсной перестановке
-    mass1 = new complex [N];
 
-    //Двоично-инверсная перестановка-- -- -
+void fft(Complex *mass, int N){
 
-    mass1->re = mass->re;
-    mass1->im = mass->im;
-    (mass1+N-1)->re = (mass+N-1)->re;
-    (mass1+N-1)->im = (mass+N-1)->im;
+    Complex *mass1 = new Complex [N];
+
+
+    mass1[0] = mass[0];
+    mass1[N-1] = mass[N-1];
+
     for(int i=1, j=1; i<N-1; i++){
 
         if(!(i%2)){
-            (mass1+j)->re = (mass+i)->re;
-            (mass1+j)->im = (mass+i)->im;
+            mass1[j] = mass[i];
             j++;
         }
-        else{
-            (mass1+(N/2-1)+j)->re = (mass+i)->re;
-            (mass1+(N/2-1)+j)->im = (mass+i)->im;
-        }
+        else
+            mass1[(N/2-1)+j] = mass[i];
+
     }
 
     //-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -82,56 +91,20 @@ void fft(complex *mass, int N){
         fft(mass1+N/2, N/2);
     }
 
-    complex Wn;
+
 
     for(int i=0; i < N/2; i++){
-        Wn = t_coeff(i,N);
-        (mass+i)->re = (mass1+i)->re + Wn.re*(mass1+i+N/2)->re - Wn.im*(mass1+i+N/2)->im;
-        (mass+i)->im = (mass1+i)->im + Wn.re*(mass1+i+N/2)->im + Wn.im*(mass1+i+N/2)->re;
-        (mass+i+N/2)->re = (mass1+i)->re - (Wn.re*(mass1+i+N/2)->re - Wn.im*(mass1+i+N/2)->im);
-        (mass+i+N/2)->im = (mass1+i)->im - (Wn.re*(mass1+i+N/2)->im + Wn.im*(mass1+i+N/2)->re);
+        double arg = 2.0*Pi*(double)i/(double)N;
+        Complex weightCoeff = Complex(cos(arg), -sin(arg));
+
+        mass[i] = mass1[i] + mass1[N/2+i]*weightCoeff;
+        mass[N/2+i] = mass1[i] - mass1[N/2 +i]*weightCoeff;
     }
 
     delete [] mass1;
 }
 
-void sort(int *mass, int N){
-
-    for(int i=0; i<N; i++){
-        for(int j=0; j<N; j++){
-            if(*(mass+j) > *(mass+j+1)){
-                swap(*(mass+j), *(mass+j+1));
-            }
-        }
-    }
-
-}
-
-//Counting of turn coefficients
-
-complex t_coeff(int k, int N){
-
-    double arg = 2.0*Pi*(double)k/(double)N;
-    complex W_coeff;
-
-    W_coeff.re = cos(arg);
-    W_coeff.im = -sin(arg);
-
-    return W_coeff;
-
-}
-
-//printing complex number
-
-void print_complex(complex *a){
-
-    cout << round(a->re*10)/10 << "+" << round(a->im*10)/10 << "j\t";
-
-}
-
-//write to m-file
-
-void wtof(complex *arr, int N){
+void writeToFile(Complex *arr, int N){
     string fileName;
 
     cin >> fileName;
@@ -141,10 +114,47 @@ void wtof(complex *arr, int N){
     fout << "clear;\nN = " << N << ";\n\nRe = zeros(1,N);\nIm = zeros(1,N);\n\n";
 
     for(int i=0; i<N; i++){
-        fout << "Re(1," << i+1 << ") = " << (arr+i)->re << ";\n";
-        fout << "Im(1," << i+1 << ") = " << (arr+i)->im << ";\n\n";
+        fout << "Re(1," << i+1 << ") = " << arr[i].real() << ";\n";
+        fout << "Im(1," << i+1 << ") = " << arr[i].imag() << ";\n\n";
     }
 
     fout << "figure(1)\nstem(Re),grid on\n\nfigure(2)\nstem(Im),grid on";
     fout.close();
+}
+
+
+void Complex::print() {
+    cout << re;
+    if(im>=0)
+        cout << "+";
+
+    cout << im <<"j\t";
+}
+
+Complex operator+(Complex c1, Complex c2) {
+
+    return Complex(c1.re+c2.re, c1.im+c2.im);
+}
+
+Complex operator-(Complex c1, Complex c2) {
+
+    return Complex(c1.re-c2.re, c1.im-c2.im);
+}
+
+Complex operator*(Complex c1, Complex c2) {
+
+    return Complex(c1.re*c2.re - c1.im*c2.im, c1.re*c2.im + c1.im*c2.re);
+}
+
+Complex operator/(Complex c1, Complex c2) {
+    if(c2.re == 0|| c2.im == 0){
+        cout << "Can\'t (";
+        c1.print();
+        cout << ")/(";
+        c2.print();
+        cout << ")\n";
+        return c1;
+    }
+
+    return Complex((c1.re*c2.re+c1.im*c2.im)/(c2.re*c2.re + c2.im*c2.im), (c1.im*c2.re-c1.re*c2.im)/(c2.re*c2.re + c2.im*c2.im));
 }
