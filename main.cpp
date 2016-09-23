@@ -31,18 +31,28 @@ public:
 
 void fft(Complex *mass, int N);
 void writeToFile(Complex *arr, int N);
+int toPow2(int n);
 
 int main(int argc, char** argv) {
-    int N = 256;
-    cin >> N;
+    int n = 256,  N = 256;
+    cin >> n;
+    N = toPow2(n);
+    cout << N;
+
 
     Complex *arr = new Complex[N];
 
-    for(int i = 0; i < N; i++){
-        double func = sin(2*Pi*25*i/N)+7*sin(2*Pi*50*i/N)+5*sin(2*Pi*75*i/N);
+    for(int i = 0; i < n; i++){
+        double func = sin(2*Pi*25*i/n)+7*sin(2*Pi*50*i/n)+5*sin(2*Pi*75*i/n);
         arr[i] = Complex(func);
         arr[i].print();
 
+    }
+
+    for(int i = n; i < N; i++){
+        arr[i] = Complex();
+        arr[i].print();
+        cout << i;
     }
 
     fft(arr, N);
@@ -58,21 +68,29 @@ int main(int argc, char** argv) {
     return 0;
 }
 
+int toPow2(int n){
+    int i=0, N=2;
+
+    while(n=n/2)
+        i++;
+
+    for(int j=0; j<i; j++)
+        N *= 2;
+
+    if(N<n)
+        return N*2;
+    else
+        return N;
+}
 
 void fft(Complex *mass, int N){
 
     Complex *mass1 = new Complex [N];
 
+    for(int i=0, j=0; i<N; i++){
 
-    mass1[0] = mass[0];
-    mass1[N-1] = mass[N-1];
-
-    for(int i=1, j=1; i<N-1; i++){
-
-        if(!(i%2)){
-            mass1[j] = mass[i];
-            j++;
-        }
+        if(!(i%2))
+            mass1[j++] = mass[i];
         else
             mass1[(N/2-1)+j] = mass[i];
 
